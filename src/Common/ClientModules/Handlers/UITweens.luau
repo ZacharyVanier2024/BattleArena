@@ -35,7 +35,7 @@ type UIFrameElements = {
 export type UIConfig = {
     elements: UIFrameElements,
     buttonOrder: {ButtonName},
-    defaultButton: ButtonName,
+    defaultButton: ButtonName?,
     useSlideTransition: boolean?
 }
 
@@ -204,7 +204,6 @@ end
 
 function UITweens.initializeUI(config: UIConfig): ()
     if not config.elements then return end
-    if not config.defaultButton then error("Missing defaultButton in config") end
     local elements = config.elements
     
     for buttonName, button in elements.Buttons do
@@ -213,7 +212,7 @@ function UITweens.initializeUI(config: UIConfig): ()
         end)
     end
 
-    if config.elements.CanvasFrames then
+    if config.defaultButton and config.elements.CanvasFrames then
         for name, frame in config.elements.CanvasFrames do
             frame.Visible = name == config.defaultButton
         end

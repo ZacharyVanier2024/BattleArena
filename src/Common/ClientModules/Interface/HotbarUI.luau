@@ -43,14 +43,18 @@ function HotbarUI:Init()
         if frame and frame:FindFirstChild("TextButton") then
             elements.Buttons[name] = frame.TextButton
             elements.Frames[name] = frame
-            elements.CanvasFrames[name] = Canvas[name.."Frame"]
+            
+            local canvasFrame = Canvas[name.."Frame"]
+            elements.CanvasFrames[name] = canvasFrame
+            if canvasFrame then
+                canvasFrame.Visible = false
+            end
         end
     end
 
     local config: UITweens.UIConfig = {
         elements = elements,
         buttonOrder = BUTTON_NAMES,
-        defaultButton = BUTTON_NAMES[1],
         closeOnSameButton = true,
         useSlideTransition = true
     }
