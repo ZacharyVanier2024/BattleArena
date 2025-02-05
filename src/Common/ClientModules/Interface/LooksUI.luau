@@ -9,6 +9,27 @@ type ViewportSetup = {
 
 type UpdateFunction = (viewportFrame: ViewportFrame, direction: number) -> string
 
+type CategoryItems<T> = {[string]: T}
+
+type Face = string
+type Skin = Color3
+type Hair = {
+    OFFSET: CFrame?,
+    ROTATION: CFrame?
+}   
+type Dye = Color3
+
+type CharacterCustomization = {
+    category: string,
+    index: number
+}
+
+type UIElements = {
+    buttons: {[string]: {Left: TextButton, Right: TextButton}},
+    labels: {[string]: TextLabel},
+    updateFuncs: {[string]: UpdateFunction}
+}
+
 local LooksUI = {}
 
 local Players = game:GetService("Players")
@@ -24,10 +45,10 @@ local ClientModules = CommonClient.ClientModules
 local Interface = ClientModules.Interface
 local UITweens = require(ClientModules.Handlers.UITweens)
 
-local Faces = require(CharacterCustomizer.Faces)
-local Skins = require(CharacterCustomizer.Skins)
-local Dyes = require(CharacterCustomizer.Dyes)
-local Hairs = require(CharacterCustomizer.Hairs)
+local Faces = require(CharacterCustomizer.Faces) :: CategoryItems<Face>
+local Skins = require(CharacterCustomizer.Skins) :: CategoryItems<Skin>
+local Dyes = require(CharacterCustomizer.Dyes) :: CategoryItems<Dye>
+local Hairs = require(CharacterCustomizer.Hairs) :: CategoryItems<Hair>
 local HairMeshes = Assets.Hairs
 
 local currentCategory, currentFaceIndex = "Default", 0
@@ -35,7 +56,7 @@ local currentSkinCategory, currentSkinIndex = "Default", 0
 local currentHairCategory, currentHairIndex = "Default", 0
 local currentDyeCategory, currentDyeIndex = "Default", 0
 
-local function getCurrentCategoryItems<T>(items: {[string]: T}, category: string): T
+local function getCurrentCategoryItems<T>(items: CategoryItems<T>, category: string): T
     return items[category] or items.Default
 end
 
@@ -50,92 +71,133 @@ local function getMaxIndex(items: {[number]: any}): number
 end
 
 local function updateIndex(currentIndex: number, direction: number, maxIndex: number): number
-    currentIndex = currentIndex + direction
-    if currentIndex > maxIndex then
-        return 0
-    elseif currentIndex < 0 then
-        return maxIndex
-    end
+    currentIndex += direction
+    if currentIndex > maxIndex then return 0 end
+    if currentIndex < 0 then return maxIndex end
     return currentIndex
 end
 
+local function updateCharacterFace(character: Model, face: string): ()
+    local head = character:FindFirstChild("Head")
+    if not head then return end
+    
+    local faceDecal = head:FindFirstChild("face") :: Decal?
+    if not faceDecal or face == "" then return end
+    
+    faceDecal.Texture = face
+end
+
 local function updateFace(viewportFrame: ViewportFrame, direction: number): string
-    local viewportCharacter = viewportFrame:FindFirstChildOfClass("Model")
-    local localCharacter = Players.LocalPlayer.Character
+    local worldModel = viewportFrame:FindFirstChildOfClass("WorldModel")
+    local viewportCharacter = worldModel and worldModel:FindFirstChildOfClass("Model")
     if not viewportCharacter then return "Face 0" end
     
     local categoryFaces = getCurrentCategoryItems(Faces, currentCategory)
     currentFaceIndex = updateIndex(currentFaceIndex, direction, getMaxIndex(categoryFaces))
     
-    local function updateCharacterFace(character: Model)
-        local head = character:FindFirstChild("Head")
-        if not head then return end
-        
-        local face = head:FindFirstChild("face")
-        if not face or not face:IsA("Decal") then return end
-        
-        if categoryFaces[currentFaceIndex] and categoryFaces[currentFaceIndex] ~= "" then
-            face.Texture = categoryFaces[currentFaceIndex]
-        end
-    end
+    local newFace = categoryFaces[currentFaceIndex]
+    if not newFace then return "Face 0" end
     
-    updateCharacterFace(viewportCharacter)
-    if localCharacter then updateCharacterFace(localCharacter) end
+    updateCharacterFace(viewportCharacter, newFace)
+    
+    local localCharacter = Players.LocalPlayer.Character
+    if localCharacter then
+        updateCharacterFace(localCharacter, newFace)
+    end
     
     return string.format("Face %d", currentFaceIndex)
 end
 
+local function updateCharacterSkin(character: Model, color: Color3): ()
+    for _, part in character:GetChildren() do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.Color = color
+        end
+    end
+end
+
 local function updateSkin(viewportFrame: ViewportFrame, direction: number): string
-    local viewportCharacter = viewportFrame:FindFirstChildOfClass("Model")
-    local localCharacter = Players.LocalPlayer.Character
+    local worldModel = viewportFrame:FindFirstChildOfClass("WorldModel")
+    local viewportCharacter = worldModel and worldModel:FindFirstChildOfClass("Model")
     if not viewportCharacter then return "Skin 0" end
     
     local categorySkins = getCurrentCategoryItems(Skins, currentSkinCategory)
     currentSkinIndex = updateIndex(currentSkinIndex, direction, getMaxIndex(categorySkins))
     
-    local function updateCharacterSkin(character: Model)
-        for _, part in character:GetChildren() do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                if categorySkins[currentSkinIndex] then
-                    part.Color = categorySkins[currentSkinIndex]
-                end
-            end
-        end
-    end
+    local newColor = categorySkins[currentSkinIndex]
+    if not newColor then return "Skin 0" end
     
-    updateCharacterSkin(viewportCharacter)
-    if localCharacter then updateCharacterSkin(localCharacter) end
+    updateCharacterSkin(viewportCharacter, newColor)
+    
+    local localCharacter = Players.LocalPlayer.Character
+    if localCharacter then
+        updateCharacterSkin(localCharacter, newColor)
+    end
     
     return string.format("Skin %d", currentSkinIndex)
 end
 
+local function updateCharacterHairColor(character: Model, color: Color3): ()
+    local head = character:FindFirstChild("Head")
+    if not head then return end
+    
+    local hair = head:FindFirstChild("CharacterHair") :: BasePart?
+    if hair then hair.Color = color end
+end
+
 local function updateDye(viewportFrame: ViewportFrame, direction: number): string
-    local viewportCharacter = viewportFrame:FindFirstChildOfClass("Model")
-    local localCharacter = Players.LocalPlayer.Character
+    local worldModel = viewportFrame:FindFirstChildOfClass("WorldModel")
+    local viewportCharacter = worldModel and worldModel:FindFirstChildOfClass("Model")
     if not viewportCharacter then return "Dye 0" end
     
     local categoryDyes = getCurrentCategoryItems(Dyes, currentDyeCategory)
     currentDyeIndex = updateIndex(currentDyeIndex, direction, getMaxIndex(categoryDyes))
     
-    local function updateCharacterHairColor(character: Model)
-        local head = character:FindFirstChild("Head")
-        if not head then return end
-        
-        local hair = head:FindFirstChild("CharacterHair") :: BasePart?
-        if hair and categoryDyes[currentDyeIndex] then
-            hair.Color = categoryDyes[currentDyeIndex]
-        end
-    end
+    local newColor = categoryDyes[currentDyeIndex]
+    if not newColor then return "Dye 0" end
     
-    updateCharacterHairColor(viewportCharacter)
-    if localCharacter then updateCharacterHairColor(localCharacter) end
+    updateCharacterHairColor(viewportCharacter, newColor)
+    
+    local localCharacter = Players.LocalPlayer.Character
+    if localCharacter then
+        updateCharacterHairColor(localCharacter, newColor)
+    end
     
     return string.format("Dye %d", currentDyeIndex)
 end
 
+local function updateCharacterHair(character: Model, hairIndex: number, hairSettings: Hair): ()
+    local head = character:FindFirstChild("Head")
+    if not head then return end
+    
+    local existingHair = head:FindFirstChild("CharacterHair")
+    if existingHair then existingHair:Destroy() end
+    
+    local hairMesh = HairMeshes:FindFirstChild(tostring(hairIndex))
+    if not hairMesh or not hairMesh:IsA("BasePart") then return end
+    
+    local newHair = hairMesh:Clone()
+    newHair.Name = "CharacterHair"
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = head
+    weld.Part1 = newHair
+    weld.Parent = newHair
+    
+    newHair.CFrame = head.CFrame * (hairSettings.OFFSET and hairSettings.ROTATION and 
+        hairSettings.OFFSET * hairSettings.ROTATION or CFrame.new())
+    
+    local categoryDyes = getCurrentCategoryItems(Dyes, currentDyeCategory)
+    if categoryDyes and categoryDyes[currentDyeIndex] then
+        newHair.Color = categoryDyes[currentDyeIndex]
+    end
+    
+    newHair.Parent = head
+end
+
 local function updateHair(viewportFrame: ViewportFrame, direction: number): string
-    local viewportCharacter = viewportFrame:FindFirstChildOfClass("Model")
-    local localCharacter = Players.LocalPlayer.Character
+    local worldModel = viewportFrame:FindFirstChildOfClass("WorldModel")
+    local viewportCharacter = worldModel and worldModel:FindFirstChildOfClass("Model")
     if not viewportCharacter then return "Hair 0" end
     
     local categoryHairs = getCurrentCategoryItems(Hairs, currentHairCategory)
@@ -143,40 +205,15 @@ local function updateHair(viewportFrame: ViewportFrame, direction: number): stri
     
     currentHairIndex = updateIndex(currentHairIndex, direction, getMaxIndex(categoryHairs))
     
-    local function updateCharacterHair(character: Model)
-        local head = character:FindFirstChild("Head") :: BasePart?
-        if not head then return end
-        
-        local existingHair = head:FindFirstChild("CharacterHair")
-        if existingHair then existingHair:Destroy() end
-        
-        local hairSettings = categoryHairs[currentHairIndex]
-        if not hairSettings then return end
-        
-        local hairMesh = HairMeshes:FindFirstChild(tostring(currentHairIndex))
-        if not hairMesh or not hairMesh:IsA("BasePart") then return end
-        
-        local newHair = hairMesh:Clone()
-        newHair.Name = "CharacterHair"
-        
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = head
-        weld.Part1 = newHair
-        weld.Parent = newHair
-        
-        newHair.CFrame = head.CFrame * (hairSettings.OFFSET and hairSettings.ROTATION and 
-            hairSettings.OFFSET * hairSettings.ROTATION or CFrame.new())
-        
-        local categoryDyes = getCurrentCategoryItems(Dyes, currentDyeCategory)
-        if categoryDyes and categoryDyes[currentDyeIndex] then
-            newHair.Color = categoryDyes[currentDyeIndex]
-        end
-        
-        newHair.Parent = head
-    end
+    local hairSettings = categoryHairs[currentHairIndex]
+    if not hairSettings then return "Hair 0" end
     
-    updateCharacterHair(viewportCharacter)
-    if localCharacter then updateCharacterHair(localCharacter) end
+    updateCharacterHair(viewportCharacter, currentHairIndex, hairSettings)
+    
+    local localCharacter = Players.LocalPlayer.Character
+    if localCharacter then
+        updateCharacterHair(localCharacter, currentHairIndex, hairSettings)
+    end
     
     return string.format("Hair %d", currentHairIndex)
 end
@@ -198,36 +235,79 @@ local function setupViewportCharacter(viewportFrame: ViewportFrame, character: M
     setup.character.Archivable = true
     local viewportCharacter = setup.character:Clone()
     setup.character.Archivable = false
-    viewportCharacter.Parent = setup.viewportFrame
+
+    local WorldModel = Instance.new("WorldModel")
+    WorldModel.Parent = setup.viewportFrame
+    
+    local platform = Instance.new("Part")
+    platform.Size = Vector3.new(4, 1, 4)
+    platform.Transparency = 1
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.CFrame = CFrame.new()
+    platform.Parent = WorldModel
+    
+    viewportCharacter:PivotTo(CFrame.new(0, platform.Size.Y/2, 0) * CFrame.Angles(0, math.rad(180), 0))
+    viewportCharacter.Parent = WorldModel
     
     local humanoidRootPart = viewportCharacter:WaitForChild("HumanoidRootPart")
     local humanoid = viewportCharacter:WaitForChild("Humanoid")
     if not humanoidRootPart or not humanoid then return end
     
-    viewportCharacter:PivotTo(CFrame.new())
+    -- Disable physics/falling state
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)  -- Disable physics
+    humanoid.AutoRotate = false
+    humanoidRootPart.Anchored = true
     
-    for _, part in viewportCharacter:GetDescendants() do
-        if part:IsA("BasePart") then part.Anchored = true end
+    -- Setup animator with highest priority idle
+    local animator = humanoid:WaitForChild("Animator") or Instance.new("Animator", humanoid)
+    
+    for _, track in animator:GetPlayingAnimationTracks() do
+        track:Stop()
+        track:Destroy()
     end
+    
+    local idleAnimation = Instance.new("Animation")
+    idleAnimation.AnimationId = "rbxassetid://507766666"
+    local animTrack = animator:LoadAnimation(idleAnimation)
+    animTrack.Looped = true
+    animTrack.Priority = Enum.AnimationPriority.Core  -- Highest priority
+    animTrack:Play(0.1, 1, 1)  -- Fade time, weight, speed
     
     local _, size = viewportCharacter:GetBoundingBox()
     local maxSize = math.max(size.X, size.Y, size.Z)
-    local basePosition = Vector3.new(0, 2.5, 0)
     
-    viewportCharacter:PivotTo(CFrame.new(basePosition))
-    setup.camera.CFrame = CFrame.new(basePosition + Vector3.new(0, 0, maxSize * 2.5), basePosition)
+    setup.camera.CFrame = CFrame.new(Vector3.new(0, 0, maxSize * 3.0), Vector3.new(0, 2.5, 0))
     
     setup.viewportFrame.BackgroundTransparency = 1
     setup.viewportFrame.Size = UDim2.fromScale(1, 1)
     
-    local rotationAngle = 0
-    setup.connection = RunService.RenderStepped:Connect(function(deltaTime: number)
-        if not setup.viewportFrame.Parent then
-            setup.connection:Disconnect()
-            return
+    local isDragging = false
+    local lastMousePos: Vector2?
+    local currentRotation = math.rad(180)
+    
+    viewportFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+            lastMousePos = Vector2.new(input.Position.X, input.Position.Y)
         end
-        rotationAngle += deltaTime * 0.5
-        viewportCharacter:PivotTo(CFrame.Angles(0, rotationAngle, 0))
+    end)
+    
+    viewportFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = false
+            lastMousePos = nil
+        end
+    end)
+    
+    viewportFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and isDragging and lastMousePos then
+            local delta = Vector2.new(input.Position.X, input.Position.Y) - lastMousePos
+            currentRotation += delta.X * 0.005
+            lastMousePos = Vector2.new(input.Position.X, input.Position.Y)
+            
+            viewportCharacter:PivotTo(CFrame.new() * CFrame.Angles(0, currentRotation, 0))
+        end
     end)
 end
 
@@ -270,18 +350,19 @@ function LooksUI.Init()
 
     local ViewportFrame = ListFrame.B_CharacterFrame.ViewportFrame
     
+    local function updateCharacter(newCharacter: Model)
+        if not newCharacter then return end
+        newCharacter:WaitForChild("HumanoidRootPart")
+        setupViewportCharacter(ViewportFrame, newCharacter)
+        
+        task.wait(0.1)
+        for name, updateFunc in updateFuncs do
+            labels[name].Text = updateFunc(ViewportFrame, 0)
+        end
+    end
+    
     if character then
-        task.spawn(function()
-            if not character.PrimaryPart then
-                character:WaitForChild("HumanoidRootPart")
-            end
-            setupViewportCharacter(ViewportFrame, character)
-            
-            task.wait(0.1)
-            for name, updateFunc in updateFuncs do
-                labels[name].Text = updateFunc(ViewportFrame, 0)
-            end
-        end)
+        task.spawn(updateCharacter, character)
     end
     
     UITweens.InitButtonAnimations(LooksFrame)
@@ -295,16 +376,7 @@ function LooksUI.Init()
         end)
     end
 
-    player.CharacterAdded:Connect(function(newCharacter: Model)
-        if not newCharacter then return end
-        newCharacter:WaitForChild("HumanoidRootPart")
-        setupViewportCharacter(ViewportFrame, newCharacter)
-        
-        task.wait(0.1)
-        for name, updateFunc in updateFuncs do
-            labels[name].Text = updateFunc(ViewportFrame, 0)
-        end
-    end)
+    player.CharacterAdded:Connect(updateCharacter)
 end
 
 return LooksUI

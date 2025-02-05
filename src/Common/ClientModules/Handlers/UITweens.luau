@@ -36,7 +36,8 @@ export type UIConfig = {
     elements: UIFrameElements,
     buttonOrder: {ButtonName},
     defaultButton: ButtonName?,
-    useSlideTransition: boolean?
+    useSlideTransition: boolean?,
+    useButtonOpacity: boolean?
 }
 
 local TweenService: TweenService = game:GetService("TweenService")
@@ -148,12 +149,28 @@ local function getButtonIndex(config: UIConfig, buttonName: ButtonName): number
     return 1
 end
 
+local function updateButtonOpacity(elements: UIFrameElements, selectedButton: ButtonName): ()
+    if not elements.Buttons then return end
+    
+    for buttonName, button in elements.Buttons do
+        local targetTransparency = if buttonName == selectedButton then 0 else 0.5
+        TweenService:Create(button, HOVER_TWEEN, {
+            TextTransparency = targetTransparency
+        }):Play()
+    end
+end
+
 function UITweens.handleFrameAnimation(config: UIConfig, selectedButton: ButtonName): ()
     if isAnimating or not config.elements then return end
     local elements: UIFrameElements = config.elements
     local buttons: UIFrameButtons = createButtons(elements)
     if not buttons[selectedButton] then error("Selected button "..selectedButton.." not found") end
     isAnimating = true
+
+    -- Update button opacity if enabled
+    if config.useButtonOpacity then
+        updateButtonOpacity(elements, selectedButton)
+    end
 
     local currentVisibleButton: ButtonName? = nil
     if config.elements.CanvasFrames then
@@ -212,9 +229,17 @@ function UITweens.initializeUI(config: UIConfig): ()
         end)
     end
 
-    if config.defaultButton and config.elements.CanvasFrames then
-        for name, frame in config.elements.CanvasFrames do
-            frame.Visible = name == config.defaultButton
+    if config.defaultButton then
+        -- Set initial frame visibility
+        if config.elements.CanvasFrames then
+            for name, frame in config.elements.CanvasFrames do
+                frame.Visible = name == config.defaultButton
+            end
+        end
+        
+        -- Set initial button opacity if enabled
+        if config.useButtonOpacity then
+            updateButtonOpacity(elements, config.defaultButton)
         end
     end
 end
