@@ -63,8 +63,6 @@ function SettingsUI.Init()
         isEnabled = false
     }
     setupToggle(tradeInviteToggle)
-
-    UITweens.InitButtonAnimations(ListFrame)
 end
 
 return SettingsUI

@@ -60,7 +60,6 @@ function HotbarUI:Init()
     }
 
     UITweens.initializeUI(config)
-    UITweens.InitButtonAnimations(hotbarFrame)
 end
 
 function HotbarUI:Destroy()

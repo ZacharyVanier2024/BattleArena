@@ -45,8 +45,6 @@ function InventoryUI.Init()
             UITweens.ShakeFrameAnimation(config, buttonName)
         end)
     end
-
-    UITweens.InitButtonAnimations(A_Frame)
 end
 
 return InventoryUI

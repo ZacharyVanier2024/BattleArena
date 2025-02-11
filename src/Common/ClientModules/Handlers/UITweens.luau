@@ -48,8 +48,8 @@ local DEFAULT_TWEEN_INFO: TweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Back, 
 local DEFAULT_POSITION: UDim2 = UDim2.fromScale(0.5, 0.5)
 local HOVER_TRANSPARENCY: number = 0.8
 local DEFAULT_TRANSPARENCY: number = 1
-local HOVER_SCALE: number = 1.1
-local CLICK_SCALE: number = 0.9
+local HOVER_SCALE: number = 1.02
+local CLICK_SCALE: number = 0.98
 local DEFAULT_SCALE: number = 1
 local HOVER_TWEEN: TweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad)
 local CLICK_TWEEN: TweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad)
@@ -230,14 +230,12 @@ function UITweens.initializeUI(config: UIConfig): ()
     end
 
     if config.defaultButton then
-        -- Set initial frame visibility
         if config.elements.CanvasFrames then
             for name, frame in config.elements.CanvasFrames do
                 frame.Visible = name == config.defaultButton
             end
         end
         
-        -- Set initial button opacity if enabled
         if config.useButtonOpacity then
             updateButtonOpacity(elements, config.defaultButton)
         end

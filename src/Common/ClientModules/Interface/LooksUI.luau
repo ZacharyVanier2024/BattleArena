@@ -364,8 +364,6 @@ function LooksUI.Init()
     if character then
         task.spawn(updateCharacter, character)
     end
-    
-    UITweens.InitButtonAnimations(LooksFrame)
 
     for name, btns in buttons do
         btns.Left.MouseButton1Click:Connect(function()

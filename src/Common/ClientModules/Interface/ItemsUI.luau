@@ -153,8 +153,68 @@ function ItemsUI.Init(): ()
             newItem.Visible = true
         end
     end
-    
-    UITweens.InitButtonAnimations(ItemsFrame)
 end
+
+local function CreateBasicOutfit(rarity: string, name: string)
+    return {
+        Items = {
+            ["Hat"] = {
+                OFFSET = CFrame.new(0, 0.25, 0.1),
+                ROTATION = CFrame.Angles(0, 0, 0),
+                BODY_PART = "Head"
+            },
+            ["ShirtLowerTorso"] = {
+                OFFSET = CFrame.new(),
+                ROTATION = CFrame.Angles(0, math.rad(90), 0),
+                BODY_PART = "LowerTorso"
+            },
+            ["ShirtUpperTorso"] = {
+                OFFSET = CFrame.new(),
+                ROTATION = CFrame.Angles(0, math.rad(90), 0),
+                BODY_PART = "UpperTorso"
+            },
+            ["ShortLeft"] = {
+                OFFSET = CFrame.new(0, -0.079, 0),
+                ROTATION = CFrame.new(),
+                BODY_PART = "LeftUpperLeg"
+            },
+            ["ShortRight"] = {
+                OFFSET = CFrame.new(0, -0.079, 0),
+                ROTATION = CFrame.new(),
+                BODY_PART = "RightUpperLeg"
+            },
+            ["UnderUpperTorso"] = {
+                OFFSET = CFrame.new(0, 0.5, -0.45),
+                ROTATION = CFrame.Angles(0, math.rad(90), 0),
+                BODY_PART = "UpperTorso"
+            }
+        },
+        RARITY = rarity,
+        NAME = name
+    }
+end
+
+local function CreateArmorOutfit(rarity: string, name: string)
+    return {
+        Items = {
+            ["Cape"] = {
+                OFFSET = CFrame.new(0, -0.869, 0.585),
+                ROTATION = CFrame.Angles(0, math.rad(-90), 0),
+                BODY_PART = "UpperTorso"
+            },
+            -- ... other armor pieces
+        },
+        RARITY = rarity,
+        NAME = name
+    }
+end
+
+-- Create outfits using templates
+local Outfits = {
+    [1] = CreateBasicOutfit("COMMON", "Basic Outfit 1"),
+    [2] = CreateBasicOutfit("COMMON", "Basic Outfit 2"),
+    [3] = CreateArmorOutfit("DIVINE", "Divine Armor Set"),
+    -- ... etc
+}
 
 return ItemsUI

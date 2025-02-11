@@ -52,8 +52,8 @@ function ShopUI:Init()
             Boxes = B_Frame.BoxesFrame,
             Products = B_Frame.ProductsFrame
         }
-    }
-
+	}
+	
     local config: Config = {
         elements = elements,
         buttonOrder = BUTTON_NAMES,
@@ -70,8 +70,6 @@ function ShopUI:Init()
         end
     end
 
-    UITweens.InitButtonAnimations(A_Frame)
-    
     if B_Frame.BoxesFrame and B_Frame.ProductsFrame then
         B_Frame.BoxesFrame.Visible = true
         B_Frame.ProductsFrame.Visible = false
